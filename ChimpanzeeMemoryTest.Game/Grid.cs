@@ -1,4 +1,5 @@
-﻿using osu.Framework.Graphics;
+﻿using osu.Framework.Bindables;
+using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.MathUtils;
@@ -35,9 +36,14 @@ namespace ChimpanzeeMemoryTest.Game
 
         private int expectedNumber;
 
-        public bool IsReady { get; private set; }
+        private int highestNumber;
 
-        public bool IsStarted { get; private set; }
+        private bool isComplete => expectedNumber > highestNumber;
+
+        private readonly Bindable<GridState> state = new Bindable<GridState>(GridState.NotReady);
+        public IBindable<GridState> State => state;
+
+        public VisibleBoxes VisibleBoxes { get; set; } = VisibleBoxes.WithNumbers;
 
         public float CellSize => 1 / totalSize;
 
@@ -60,7 +66,7 @@ namespace ChimpanzeeMemoryTest.Game
 
         private Cell GetCell(Vector2I coordinates) => gridCells[(coordinates.Y * 2) - 1][(coordinates.X * 2) - 1];
 
-        private Cell GetCell(int row, int column) => gridCells[(row * 2) - 1][(column * 2) - 1];
+        //private Cell GetCell(int row, int column) => gridCells[(row * 2) - 1][(column * 2) - 1];
 
         public void UpdateLayout()
         {
@@ -97,13 +103,29 @@ namespace ChimpanzeeMemoryTest.Game
 
         private void OnCellClicked(Cell cell)
         {
-            if (!IsStarted)
-                Start(true);
+            if (VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
+                return;
+            if (!(State.Value == GridState.Playing || (State.Value == GridState.GeneratedAndWaiting && cell.Number == 1)))
+                return;
+            if (state.Value == GridState.GeneratedAndWaiting)
+                Start();
             if (cell.Number == expectedNumber)
             {
-                cell.Show(false, true);
+                cell.ShowNumber();
                 expectedNumber++;
             }
+            else
+                OnFail();
+            if (isComplete)
+                OnWin();
+        }
+
+        private void OnWin() => state.Value = GridState.Completed;
+
+        private void OnFail()
+        {
+            state.Value = GridState.Failed;
+            ShowFull();
         }
 
         private void SetNumbers(IList<Vector2I> placesArray, int size)
@@ -112,6 +134,8 @@ namespace ChimpanzeeMemoryTest.Game
             var currentNumber = 0;
 
             Size = size;
+
+            highestNumber = placesArray.Count;
 
             foreach (var place in placesArray)
             {
@@ -125,23 +149,33 @@ namespace ChimpanzeeMemoryTest.Game
             }
         }
 
-        private void ShowFull(bool onlyWithNumbers)
+        private void ShowFull()
         {
             foreach (var cell in allCells)
-                cell.Show(onlyWithNumbers, true);
+            {
+                if (VisibleBoxes == VisibleBoxes.All || cell.Number.HasValue)
+                {
+                    cell.ShowBackground();
+                    cell.ShowNumber();
+                }
+            }
         }
 
-        private void Start(bool onlyLeaveBackgroundIfNumber)
+        private void Start()
         {
-            IsStarted = true;
             expectedNumber = 1;
             foreach (var cell in allCells)
-                cell.Hide(onlyLeaveBackgroundIfNumber);
+            {
+                if (VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
+                    cell.HideBackground();
+                cell.HideNumber();
+            }
+            state.Value = GridState.Playing;
         }
 
         public void Proceed()
         {
-            if (!IsReady)
+            if (new[] { GridState.NotReady, GridState.Completed, GridState.Failed }.Contains(State.Value))
             {
                 var coordinates = new List<Vector2I>();
                 for (var i = 0; i < 4; i++)
@@ -153,11 +187,26 @@ namespace ChimpanzeeMemoryTest.Game
                     coordinates.Add(coordinate);
                 }
                 SetNumbers(coordinates, 5);
-                ShowFull(true);
-                IsReady = true;
+                ShowFull();
+                state.Value = GridState.GeneratedAndWaiting;
             }
-            else if (!IsStarted)
-                Start(true);
+            else if (State.Value == GridState.GeneratedAndWaiting)
+                Start();
         }
+    }
+
+    public enum VisibleBoxes
+    {
+        WithNumbers = 0,
+        All = 1,
+    }
+
+    public enum GridState
+    {
+        NotReady = 0,
+        GeneratedAndWaiting = 1,
+        Playing = 2,
+        Completed = 3,
+        Failed = 4,
     }
 }

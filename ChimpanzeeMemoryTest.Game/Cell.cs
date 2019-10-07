@@ -15,9 +15,9 @@ namespace ChimpanzeeMemoryTest.Game
 
         public readonly Box Background;
 
-        public int Number
+        public int? Number
         {
-            get => string.IsNullOrEmpty(numberText.Text) ? -1 : int.Parse(numberText.Text);
+            get => string.IsNullOrEmpty(numberText.Text) ? (int?)null : int.Parse(numberText.Text);
             set => numberText.Text = value.ToString();
         }
 
@@ -47,22 +47,13 @@ namespace ChimpanzeeMemoryTest.Game
             };
         }
 
-        public void Show(bool onlyIfNumber, bool withNumber = false)
-        {
-            if (onlyIfNumber && Number == -1)
-                return;
-            Background.Show();
-            if (withNumber)
-                numberText.Show();
-        }
+        public void ShowNumber() => numberText.Show();
 
-        public void Hide(bool onlyLeaveBackgroundIfNumber)
-        {
-            numberText.Hide();
-            if (onlyLeaveBackgroundIfNumber && Number != -1)
-                return;
-            Background.Hide();
-        }
+        public void ShowBackground() => Background.Show();
+
+        public void HideNumber() => numberText.Hide();
+
+        public void HideBackground() => Background.Hide();
 
         protected override bool OnClick(ClickEvent e)
         {

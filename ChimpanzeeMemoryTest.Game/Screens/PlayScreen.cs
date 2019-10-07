@@ -1,11 +1,9 @@
-﻿using ChimpanzeeMemoryTest.Game.UI;
+﻿using System;
+using ChimpanzeeMemoryTest.Game.UI;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
-using osu.Framework.Graphics.Primitives;
-using osu.Framework.MathUtils;
 using osu.Framework.Screens;
-using System;
-using System.Collections.Generic;
 
 namespace ChimpanzeeMemoryTest.Game.Screens
 {
@@ -37,7 +35,6 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     {
                         button = new CMTButton
                         {
-                            Text = "Generate grid",
                             FillMode = FillMode.Fit,
                             FillAspectRatio = 2,
                             RelativeSizeAxes = Axes.Both,
@@ -49,20 +46,49 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     }
                 }
             };
+            grid.State.BindValueChanged(OnGridStateChange, true);
         }
+
+        private void OnGridStateChange(ValueChangedEvent<GridState> obj) => UpdateButton();
 
         private void OnButtonClicked()
         {
             grid.Proceed();
-            if (grid.IsReady)
+            if (grid.State.Value == GridState.Playing)
                 button.Hide();
+        }
+
+        private void UpdateButton()
+        {
+            switch (grid.State.Value)
+            {
+                case GridState.NotReady:
+                    button.Text = "Generate grid";
+                    button.Show();
+                    button.Action = grid.Proceed;
+                    break;
+                case GridState.GeneratedAndWaiting:
+                    button.Text = "Start by clicking the first box";
+                    button.Show();
+                    button.Action = null;
+                    break;
+                case GridState.Playing:
+                    button.Hide();
+                    break;
+                case GridState.Completed:
+                case GridState.Failed:
+                    button.Text = "Generate new grid";
+                    button.Show();
+                    button.Action = grid.Proceed;
+                    break;
+            }
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
             gridContainer.Add(grid.Drawable);
-
+            UpdateButton();
         }
     }
 }

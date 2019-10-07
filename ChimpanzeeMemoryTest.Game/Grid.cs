@@ -11,8 +11,6 @@ namespace ChimpanzeeMemoryTest.Game
 {
     public class Grid
     {
-        private int size;
-
         private readonly GridContainer grid = new GridContainer
         {
             RelativeSizeAxes = Axes.Both,
@@ -36,26 +34,19 @@ namespace ChimpanzeeMemoryTest.Game
 
         private int expectedNumber;
 
-        private int highestNumber;
 
-        private bool isComplete => expectedNumber > highestNumber;
+        private bool isComplete => expectedNumber > AmountOfNumbers;
 
         private readonly Bindable<GridState> state = new Bindable<GridState>(GridState.NotReady);
         public IBindable<GridState> State => state;
+
+        public int AmountOfNumbers { get; set; } = 5;
 
         public VisibleBoxes VisibleBoxes { get; set; } = VisibleBoxes.WithNumbers;
 
         public float CellSize => 1 / totalSize;
 
-        public int Size
-        {
-            get => size;
-            private set
-            {
-                size = value;
-                UpdateLayout();
-            }
-        }
+        public int Size { get; set; } = 5;
 
         /// <summary>
         /// The size of space between cells relative to the size of a cell.
@@ -68,7 +59,7 @@ namespace ChimpanzeeMemoryTest.Game
 
         //private Cell GetCell(int row, int column) => gridCells[(row * 2) - 1][(column * 2) - 1];
 
-        public void UpdateLayout()
+        public void GenerateLayout()
         {
             var dimensions = new Dimension[Size + amountOfSpacings];
             gridCells = new Cell[Size + amountOfSpacings][];
@@ -107,6 +98,8 @@ namespace ChimpanzeeMemoryTest.Game
                 return;
             if (!(State.Value == GridState.Playing || (State.Value == GridState.GeneratedAndWaiting && cell.Number == 1)))
                 return;
+            if (cell.Number < expectedNumber)
+                return;
             if (state.Value == GridState.GeneratedAndWaiting)
                 Start();
             if (cell.Number == expectedNumber)
@@ -135,8 +128,6 @@ namespace ChimpanzeeMemoryTest.Game
 
             Size = size;
 
-            highestNumber = placesArray.Count;
-
             foreach (var place in placesArray)
             {
                 currentNumber++;
@@ -163,7 +154,6 @@ namespace ChimpanzeeMemoryTest.Game
 
         private void Start()
         {
-            expectedNumber = 1;
             foreach (var cell in allCells)
             {
                 if (VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
@@ -175,10 +165,12 @@ namespace ChimpanzeeMemoryTest.Game
 
         public void Proceed()
         {
-            if (new[] { GridState.NotReady, GridState.Completed, GridState.Failed }.Contains(State.Value))
+            if (State.Value == GridState.NotReady)
             {
                 var coordinates = new List<Vector2I>();
-                for (var i = 0; i < 4; i++)
+                if (AmountOfNumbers > Size * Size)
+                    throw new Exception($"Amount of numbers ({AmountOfNumbers}) is impossible to fit into the grid of size {Size}x{Size}");
+                for (var i = 0; i < AmountOfNumbers; i++)
                 {
                     Vector2I coordinate;
                     do
@@ -186,12 +178,19 @@ namespace ChimpanzeeMemoryTest.Game
                     while (coordinates.Contains(coordinate));
                     coordinates.Add(coordinate);
                 }
-                SetNumbers(coordinates, 5);
+                GenerateLayout();
+                SetNumbers(coordinates, Size);
                 ShowFull();
                 state.Value = GridState.GeneratedAndWaiting;
+                expectedNumber = 1;
             }
             else if (State.Value == GridState.GeneratedAndWaiting)
                 Start();
+            else if (State.Value == GridState.Completed || State.Value == GridState.Failed)
+            {
+                GenerateLayout();
+                state.Value = GridState.NotReady;
+            }
         }
     }
 

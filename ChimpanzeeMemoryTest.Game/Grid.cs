@@ -34,19 +34,29 @@ namespace ChimpanzeeMemoryTest.Game
 
         private int expectedNumber;
 
-
-        private bool isComplete => expectedNumber > AmountOfNumbers;
+        private bool isComplete => expectedNumber > AmountOfNumbers.Value;
 
         private readonly Bindable<GridState> state = new Bindable<GridState>(GridState.NotReady);
         public IBindable<GridState> State => state;
 
-        public int AmountOfNumbers { get; set; } = 5;
+        public BindableInt AmountOfNumbers { get; } = new BindableInt(5)
+        {
+            MinValue = 3,
+            MaxValue = 50,
+        };
 
         public VisibleBoxes VisibleBoxes { get; set; } = VisibleBoxes.WithNumbers;
 
         public float CellSize => 1 / totalSize;
 
-        public int Size { get; set; } = 5;
+        public BindableInt SizeBindable { get; } = new BindableInt(5)
+        {
+            MaxValue = 20,
+            MinValue = 3,
+            Precision = 1
+        };
+
+        public int Size => SizeBindable.Value;
 
         /// <summary>
         /// The size of space between cells relative to the size of a cell.
@@ -54,6 +64,30 @@ namespace ChimpanzeeMemoryTest.Game
         public float Spacing = 0.1f;
 
         public Drawable Drawable => grid;
+
+        public Grid()
+        {
+            SizeBindable.BindValueChanged(OnSizeChanged, true);
+            SizeBindable.BindValueChanged(v => OnSettingsChanged(), true);
+            AmountOfNumbers.BindValueChanged(v => OnSettingsChanged());
+        }
+
+        private void OnSettingsChanged()
+        {
+            GenerateLayout();
+            SetNumbers(GenerateRandomCoordinates());
+            foreach (var cell in allCells)
+            {
+                cell.ShowBackground();
+                cell.ShowNumber();
+            }
+        }
+
+        private void OnSizeChanged(ValueChangedEvent<int> vc)
+        {
+            AmountOfNumbers.MaxValue = vc.NewValue * vc.NewValue;
+            AmountOfNumbers.Value = Math.Min(AmountOfNumbers.Value, AmountOfNumbers.MaxValue);
+        }
 
         private Cell GetCell(Vector2I coordinates) => gridCells[(coordinates.Y * 2) - 1][(coordinates.X * 2) - 1];
 
@@ -105,6 +139,7 @@ namespace ChimpanzeeMemoryTest.Game
             if (cell.Number == expectedNumber)
             {
                 cell.ShowNumber();
+                cell.ShowBackground();
                 expectedNumber++;
             }
             else
@@ -121,12 +156,13 @@ namespace ChimpanzeeMemoryTest.Game
             ShowFull();
         }
 
-        private void SetNumbers(IList<Vector2I> placesArray, int size)
+        private void SetNumbers(IList<Vector2I> placesArray)
         {
             var usedCoordinates = new List<Vector2I>();
             var currentNumber = 0;
 
-            Size = size;
+            if (placesArray.Count > Size * Size)
+                throw new Exception($"Too many numbers ({placesArray.Count}) for the {Size}x{Size} grid");
 
             foreach (var place in placesArray)
             {
@@ -156,7 +192,8 @@ namespace ChimpanzeeMemoryTest.Game
         {
             foreach (var cell in allCells)
             {
-                if (VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
+                if ((VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
+                    || VisibleBoxes == VisibleBoxes.None)
                     cell.HideBackground();
                 cell.HideNumber();
             }
@@ -167,19 +204,10 @@ namespace ChimpanzeeMemoryTest.Game
         {
             if (State.Value == GridState.NotReady)
             {
-                var coordinates = new List<Vector2I>();
-                if (AmountOfNumbers > Size * Size)
+                if (AmountOfNumbers.Value > Size * Size)
                     throw new Exception($"Amount of numbers ({AmountOfNumbers}) is impossible to fit into the grid of size {Size}x{Size}");
-                for (var i = 0; i < AmountOfNumbers; i++)
-                {
-                    Vector2I coordinate;
-                    do
-                        coordinate = new Vector2I(RNG.Next(1, 6), RNG.Next(1, 6));
-                    while (coordinates.Contains(coordinate));
-                    coordinates.Add(coordinate);
-                }
                 GenerateLayout();
-                SetNumbers(coordinates, Size);
+                SetNumbers(GenerateRandomCoordinates());
                 ShowFull();
                 state.Value = GridState.GeneratedAndWaiting;
                 expectedNumber = 1;
@@ -188,16 +216,31 @@ namespace ChimpanzeeMemoryTest.Game
                 Start();
             else if (State.Value == GridState.Completed || State.Value == GridState.Failed)
             {
-                GenerateLayout();
+                OnSettingsChanged();
                 state.Value = GridState.NotReady;
             }
+        }
+
+        public IList<Vector2I> GenerateRandomCoordinates()
+        {
+            var coordinates = new List<Vector2I>();
+            for (var i = 0; i < AmountOfNumbers.Value; i++)
+            {
+                Vector2I coordinate;
+                do
+                    coordinate = new Vector2I(RNG.Next(Size), RNG.Next(Size)) + Vector2I.One;
+                while (coordinates.Contains(coordinate));
+                coordinates.Add(coordinate);
+            }
+            return coordinates;
         }
     }
 
     public enum VisibleBoxes
     {
-        WithNumbers = 0,
-        All = 1,
+        None = 0,
+        WithNumbers = 1,
+        All = 2,
     }
 
     public enum GridState

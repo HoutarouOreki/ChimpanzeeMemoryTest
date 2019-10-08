@@ -3,6 +3,8 @@ using ChimpanzeeMemoryTest.Game.UI;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Sprites;
+using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
 
 namespace ChimpanzeeMemoryTest.Game.Screens
@@ -11,6 +13,16 @@ namespace ChimpanzeeMemoryTest.Game.Screens
     {
         private readonly Container gridContainer;
         private readonly CMTButton button;
+        private readonly SpriteText sizeText;
+        private readonly FillFlowContainer leftSettings;
+        private readonly FillFlowContainer rightSettings;
+        private readonly SpriteText amountOfNumbersText;
+        private readonly BindableInt visibleBoxesBindable = new BindableInt(1)
+        {
+            MinValue = 0,
+            MaxValue = 2,
+        };
+        private readonly SpriteText visibleBoxesText;
 
         private Grid grid { get; } = new Grid();
 
@@ -22,34 +34,149 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 gridContainer = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Height = 0.7f,
+                    Padding = new MarginPadding { Bottom = 120 }
                 },
                 new FillFlowContainer
                 {
-                    RelativeSizeAxes = Axes.Both,
+                    RelativeSizeAxes = Axes.X,
                     RelativePositionAxes = Axes.Y,
-                    Y = 0.8f,
-                    Height = 0.2f,
+                    Height = 120,
                     Direction = FillDirection.Horizontal,
+                    Anchor = Anchor.BottomCentre,
+                    Origin = Anchor.BottomCentre,
+                    Padding = new MarginPadding(20),
+                    Spacing = new osuTK.Vector2(20),
                     Children = new Drawable[]
                     {
+                        leftSettings = new FillFlowContainer
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Width = 0.33f,
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            Spacing = new osuTK.Vector2(20),
+                            Children = new Drawable[]
+                            {
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Height = 30,
+                                    Children = new Drawable[]
+                                    {
+                                        new BasicSliderBar<int>
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            Height = 30,
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                            Current = grid.SizeBindable,
+                                            BackgroundColour = FrameworkColour.BlueDark,
+                                            SelectionColour = FrameworkColour.BlueGreen
+                                        },
+                                        sizeText = new SpriteText
+                                        {
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                        }
+                                    }
+                                },
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Height = 30,
+                                    Children = new Drawable[]
+                                    {
+                                        new BasicSliderBar<int>
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            Height = 30,
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                            Current = grid.AmountOfNumbers,
+                                            BackgroundColour = FrameworkColour.BlueDark,
+                                            SelectionColour = FrameworkColour.BlueGreen
+                                        },
+                                        amountOfNumbersText = new SpriteText
+                                        {
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                        }
+                                    }
+                                }
+                            }
+                        },
                         button = new CMTButton
                         {
-                            FillMode = FillMode.Fit,
-                            FillAspectRatio = 2,
                             RelativeSizeAxes = Axes.Both,
+                            Width = 0.34f,
                             Masking = true,
                             Action = OnButtonClicked,
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
+                        },
+                        rightSettings = new FillFlowContainer
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Width = 0.33f,
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            Spacing = new osuTK.Vector2(20),
+                            Children = new Drawable[]
+                            {
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Height = 30,
+                                    Children = new Drawable[]
+                                    {
+                                        new BasicSliderBar<int>
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            Height = 30,
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                            Current = visibleBoxesBindable,
+                                            BackgroundColour = FrameworkColour.BlueDark,
+                                            SelectionColour = FrameworkColour.BlueGreen
+                                        },
+                                        visibleBoxesText = new SpriteText
+                                        {
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             };
             grid.State.BindValueChanged(OnGridStateChange, true);
+            grid.SizeBindable.BindValueChanged(vc => sizeText.Text = $"Size: {vc.NewValue}x{vc.NewValue}", true);
+            grid.AmountOfNumbers.BindValueChanged(vc => amountOfNumbersText.Text = $"Numbers: {vc.NewValue}", true);
+            visibleBoxesBindable.BindValueChanged(OnVisibleBoxesSettingChange, true);
         }
 
-        private void OnGridStateChange(ValueChangedEvent<GridState> obj) => UpdateButton();
+        private void OnVisibleBoxesSettingChange(ValueChangedEvent<int> obj)
+        {
+            var s = string.Empty;
+            switch (obj.NewValue)
+            {
+                case 0:
+                    s = "none";
+                    break;
+                case 1:
+                    s = "with numbers";
+                    break;
+                case 2:
+                    s = "all";
+                    break;
+            }
+            visibleBoxesText.Text = $"Visible boxes: {s}";
+            grid.VisibleBoxes = (VisibleBoxes)obj.NewValue;
+        }
+
+        private void OnGridStateChange(ValueChangedEvent<GridState> obj) => UpdateLayout();
 
         private void OnButtonClicked()
         {
@@ -58,7 +185,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 button.Hide();
         }
 
-        private void UpdateButton()
+        private void UpdateLayout()
         {
             switch (grid.State.Value)
             {
@@ -66,11 +193,15 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     button.Text = "Generate grid";
                     button.Show();
                     button.Action = grid.Proceed;
+                    leftSettings.Show();
+                    rightSettings.Show();
                     break;
                 case GridState.GeneratedAndWaiting:
                     button.Text = "Start by clicking the first box";
                     button.Show();
                     button.Action = null;
+                    leftSettings.Hide();
+                    rightSettings.Hide();
                     break;
                 case GridState.Playing:
                     button.Hide();
@@ -88,7 +219,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         {
             base.LoadComplete();
             gridContainer.Add(grid.Drawable);
-            UpdateButton();
+            UpdateLayout();
         }
     }
 }

@@ -45,7 +45,7 @@ namespace ChimpanzeeMemoryTest.Game
             MaxValue = 50,
         };
 
-        public VisibleBoxes VisibleBoxes { get; set; } = VisibleBoxes.WithNumbers;
+        public Bindable<BoxVisibility> VisibleBoxes { get; } = new Bindable<BoxVisibility>(BoxVisibility.WithNumbers);
 
         public float CellSize => 1 / totalSize;
 
@@ -70,17 +70,14 @@ namespace ChimpanzeeMemoryTest.Game
             SizeBindable.BindValueChanged(OnSizeChanged, true);
             SizeBindable.BindValueChanged(v => OnSettingsChanged(), true);
             AmountOfNumbers.BindValueChanged(v => OnSettingsChanged());
+            VisibleBoxes.BindValueChanged(v => OnSettingsChanged());
         }
 
         private void OnSettingsChanged()
         {
             GenerateLayout();
             SetNumbers(GenerateRandomCoordinates());
-            foreach (var cell in allCells)
-            {
-                cell.ShowBackground();
-                cell.ShowNumber();
-            }
+            ShowFull();
         }
 
         private void OnSizeChanged(ValueChangedEvent<int> vc)
@@ -128,7 +125,7 @@ namespace ChimpanzeeMemoryTest.Game
 
         private void OnCellClicked(Cell cell)
         {
-            if (VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
+            if (VisibleBoxes.Value == BoxVisibility.WithNumbers && !cell.Number.HasValue)
                 return;
             if (!(State.Value == GridState.Playing || (State.Value == GridState.GeneratedAndWaiting && cell.Number == 1)))
                 return;
@@ -180,7 +177,7 @@ namespace ChimpanzeeMemoryTest.Game
         {
             foreach (var cell in allCells)
             {
-                if (VisibleBoxes == VisibleBoxes.All || cell.Number.HasValue)
+                if (VisibleBoxes.Value == BoxVisibility.All || cell.Number.HasValue)
                 {
                     cell.ShowBackground();
                     cell.ShowNumber();
@@ -192,8 +189,8 @@ namespace ChimpanzeeMemoryTest.Game
         {
             foreach (var cell in allCells)
             {
-                if ((VisibleBoxes == VisibleBoxes.WithNumbers && !cell.Number.HasValue)
-                    || VisibleBoxes == VisibleBoxes.None)
+                if ((VisibleBoxes.Value == BoxVisibility.WithNumbers && !cell.Number.HasValue)
+                    || VisibleBoxes.Value == BoxVisibility.None)
                     cell.HideBackground();
                 cell.HideNumber();
             }
@@ -236,7 +233,7 @@ namespace ChimpanzeeMemoryTest.Game
         }
     }
 
-    public enum VisibleBoxes
+    public enum BoxVisibility
     {
         None = 0,
         WithNumbers = 1,

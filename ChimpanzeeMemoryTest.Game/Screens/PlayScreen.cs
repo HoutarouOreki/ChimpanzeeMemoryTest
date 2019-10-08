@@ -23,6 +23,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
             MaxValue = 2,
         };
         private readonly SpriteText visibleBoxesText;
+        private readonly SpriteText previewText;
 
         private Grid grid { get; } = new Grid();
 
@@ -34,7 +35,19 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 gridContainer = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Bottom = 120 }
+                    Padding = new MarginPadding { Bottom = 120 },
+                    Children = new Drawable[]
+                    {
+                        previewText = new SpriteText
+                        {
+                            Text = "preview",
+                            Font = new FontUsage("OpenSans-Bold", 86),
+                            Rotation = 15,
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            Depth = -1
+                        }
+                    }
                 },
                 new FillFlowContainer
                 {
@@ -173,7 +186,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     break;
             }
             visibleBoxesText.Text = $"Visible boxes: {s}";
-            grid.VisibleBoxes = (VisibleBoxes)obj.NewValue;
+            grid.VisibleBoxes.Value = (BoxVisibility)obj.NewValue;
         }
 
         private void OnGridStateChange(ValueChangedEvent<GridState> obj) => UpdateLayout();
@@ -195,6 +208,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     button.Action = grid.Proceed;
                     leftSettings.Show();
                     rightSettings.Show();
+                    previewText.FadeTo(0.3f);
                     break;
                 case GridState.GeneratedAndWaiting:
                     button.Text = "Start by clicking the first box";
@@ -202,6 +216,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     button.Action = null;
                     leftSettings.Hide();
                     rightSettings.Hide();
+                    previewText.Hide();
                     break;
                 case GridState.Playing:
                     button.Hide();

@@ -11,6 +11,8 @@ namespace ChimpanzeeMemoryTest.Game.Screens
 {
     internal class PlayScreen : Screen
     {
+        private const int collapsed_settings_height = 120;
+        private const int expanded_settings_height = 170;
         private readonly Container gridContainer;
         private readonly CMTButton button;
         private readonly SpriteText sizeText;
@@ -25,6 +27,8 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         private readonly SpriteText visibleBoxesText;
         private readonly SpriteText previewText;
         private readonly CMTButton restartButton;
+        private readonly FillFlowContainer bottomContainer;
+        private readonly SpriteText roundsAmountText;
 
         private Grid grid { get; } = new Grid();
 
@@ -36,7 +40,6 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 gridContainer = new Container
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Padding = new MarginPadding { Bottom = 120 },
                     Children = new Drawable[]
                     {
                         previewText = new SpriteText
@@ -50,11 +53,11 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                         }
                     }
                 },
-                new FillFlowContainer
+                bottomContainer = new FillFlowContainer
                 {
                     RelativeSizeAxes = Axes.X,
                     RelativePositionAxes = Axes.Y,
-                    Height = 120,
+                    Height = collapsed_settings_height,
                     Direction = FillDirection.Horizontal,
                     Anchor = Anchor.BottomCentre,
                     Origin = Anchor.BottomCentre,
@@ -169,6 +172,29 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                                             Origin = Anchor.Centre,
                                         }
                                     }
+                                },
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Height = 30,
+                                    Children = new Drawable[]
+                                    {
+                                        new BasicSliderBar<int>
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            Height = 30,
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                            Current = grid.RoundsAmount,
+                                            BackgroundColour = FrameworkColour.BlueDark,
+                                            SelectionColour = FrameworkColour.BlueGreen
+                                        },
+                                        roundsAmountText = new SpriteText
+                                        {
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -179,6 +205,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
             grid.SizeBindable.BindValueChanged(vc => sizeText.Text = $"Size: {vc.NewValue}x{vc.NewValue}", true);
             grid.AmountOfNumbers.BindValueChanged(vc => amountOfNumbersText.Text = $"Numbers: {vc.NewValue}", true);
             visibleBoxesBindable.BindValueChanged(OnVisibleBoxesSettingChange, true);
+            grid.RoundsAmount.BindValueChanged(vc => roundsAmountText.Text = $"Rounds: {vc.NewValue}", true);
         }
 
         private void OnVisibleBoxesSettingChange(ValueChangedEvent<int> obj)
@@ -212,6 +239,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         private void UpdateLayout()
         {
             restartButton.Hide();
+            const int settings_resize_duration = 0;
             switch (grid.State.Value)
             {
                 case GridState.NotReady:
@@ -221,6 +249,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     leftSettings.Show();
                     rightSettings.Show();
                     previewText.FadeTo(0.3f);
+                    bottomContainer.ResizeHeightTo(expanded_settings_height, settings_resize_duration, Easing.OutQuint);
                     break;
                 case GridState.GeneratedAndWaiting:
                     button.Text = "Start by clicking the first box";
@@ -229,6 +258,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     leftSettings.Hide();
                     rightSettings.Hide();
                     previewText.Hide();
+                    bottomContainer.ResizeHeightTo(collapsed_settings_height, settings_resize_duration, Easing.OutQuint);
                     break;
                 case GridState.Playing:
                     button.Hide();
@@ -248,6 +278,12 @@ namespace ChimpanzeeMemoryTest.Game.Screens
             base.LoadComplete();
             gridContainer.Add(grid.Drawable);
             UpdateLayout();
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+            gridContainer.Padding = new MarginPadding { Bottom = bottomContainer.Height };
         }
     }
 }

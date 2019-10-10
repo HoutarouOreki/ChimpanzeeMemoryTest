@@ -63,6 +63,12 @@ namespace ChimpanzeeMemoryTest.Game
         /// </summary>
         public float Spacing = 0.1f;
 
+        public BindableInt RoundsAmount { get; } = new BindableInt(1)
+        {
+            MinValue = 1,
+            MaxValue = 20,
+        };
+
         public Drawable Drawable => grid;
 
         public Grid()
@@ -71,6 +77,7 @@ namespace ChimpanzeeMemoryTest.Game
             SizeBindable.BindValueChanged(v => OnSettingsChanged(), true);
             AmountOfNumbers.BindValueChanged(v => OnSettingsChanged());
             VisibleBoxes.BindValueChanged(v => OnSettingsChanged());
+            // RoundsAmount.BindValueChanged(v => OnSettingsChanged()); // doesn't change the preview at all
         }
 
         private void OnSettingsChanged()

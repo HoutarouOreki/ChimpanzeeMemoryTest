@@ -185,6 +185,12 @@ namespace ChimpanzeeMemoryTest.Game
             }
         }
 
+        public void Retry()
+        {
+            state.Value = GridState.NotReady;
+            Proceed();
+        }
+
         private void Start()
         {
             foreach (var cell in allCells)

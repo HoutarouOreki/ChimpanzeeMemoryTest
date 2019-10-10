@@ -24,6 +24,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         };
         private readonly SpriteText visibleBoxesText;
         private readonly SpriteText previewText;
+        private readonly CMTButton restartButton;
 
         private Grid grid { get; } = new Grid();
 
@@ -127,6 +128,16 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
                         },
+                        restartButton = new CMTButton
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                            Width = 0.34f,
+                            Masking = true,
+                            Action = grid.Retry,
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            Text = "Try again",
+                        },
                         rightSettings = new FillFlowContainer
                         {
                             RelativeSizeAxes = Axes.Both,
@@ -200,6 +211,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
 
         private void UpdateLayout()
         {
+            restartButton.Hide();
             switch (grid.State.Value)
             {
                 case GridState.NotReady:
@@ -223,9 +235,10 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     break;
                 case GridState.Completed:
                 case GridState.Failed:
-                    button.Text = "Generate new grid";
+                    button.Text = "Change settings";
                     button.Show();
                     button.Action = grid.Proceed;
+                    restartButton.Show();
                     break;
             }
         }

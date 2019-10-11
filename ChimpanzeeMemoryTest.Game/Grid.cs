@@ -34,10 +34,16 @@ namespace ChimpanzeeMemoryTest.Game
 
         private int expectedNumber;
 
-        private bool isComplete => expectedNumber > AmountOfNumbers.Value;
+        private bool isCurrentRoundComplete => expectedNumber > AmountOfNumbers.Value;
+
+        private DateTime timerStart;
+
+        private GameStatistics gameStatistics = new GameStatistics();
 
         private readonly Bindable<GridState> state = new Bindable<GridState>(GridState.NotReady);
         public IBindable<GridState> State => state;
+
+        public IGameStatistics GameStatistics => gameStatistics;
 
         public BindableInt AmountOfNumbers { get; } = new BindableInt(5)
         {
@@ -69,7 +75,10 @@ namespace ChimpanzeeMemoryTest.Game
             MaxValue = 20,
         };
 
+        public int CurrentRound { get; private set; }
+
         public Drawable Drawable => grid;
+
 
         public Grid()
         {
@@ -94,8 +103,6 @@ namespace ChimpanzeeMemoryTest.Game
         }
 
         private Cell GetCell(Vector2I coordinates) => gridCells[(coordinates.Y * 2) - 1][(coordinates.X * 2) - 1];
-
-        //private Cell GetCell(int row, int column) => gridCells[(row * 2) - 1][(column * 2) - 1];
 
         public void GenerateLayout()
         {
@@ -148,15 +155,22 @@ namespace ChimpanzeeMemoryTest.Game
             }
             else
                 OnFail();
-            if (isComplete)
+            if (isCurrentRoundComplete)
                 OnWin();
         }
 
-        private void OnWin() => state.Value = GridState.Completed;
+        private void OnWin()
+        {
+            gameStatistics.actionTimes.Add((float)(DateTime.UtcNow - timerStart).TotalSeconds);
+            gameStatistics.RoundsCompleted++;
+            state.Value = GridState.RoundCompleted;
+        }
 
         private void OnFail()
         {
-            state.Value = GridState.Failed;
+            gameStatistics.memorizationTimes.Remove(gameStatistics.memorizationTimes.Last());
+            gameStatistics.RoundsFailed++;
+            state.Value = GridState.RoundFailed;
             ShowFull();
         }
 
@@ -178,6 +192,7 @@ namespace ChimpanzeeMemoryTest.Game
 
                 GetCell(place).Number = currentNumber;
             }
+            timerStart = DateTime.UtcNow;
         }
 
         private void ShowFull()
@@ -198,7 +213,7 @@ namespace ChimpanzeeMemoryTest.Game
             Proceed();
         }
 
-        private void Start()
+        public void Start()
         {
             foreach (var cell in allCells)
             {
@@ -207,8 +222,27 @@ namespace ChimpanzeeMemoryTest.Game
                     cell.HideBackground();
                 cell.HideNumber();
             }
+            CurrentRound++;
             state.Value = GridState.Playing;
+            gameStatistics.memorizationTimes.Add((float)(DateTime.UtcNow - timerStart).TotalSeconds);
+            timerStart = DateTime.UtcNow;
         }
+
+        public void NextRound()
+        {
+            if (CurrentRound == RoundsAmount.Value)
+            {
+                GameFinished();
+                return;
+            }
+            GenerateLayout();
+            SetNumbers(GenerateRandomCoordinates());
+            ShowFull();
+            state.Value = GridState.GeneratedAndWaiting;
+            expectedNumber = 1;
+        }
+
+        private void GameFinished() => state.Value = GridState.GameFinished;
 
         public void Proceed()
         {
@@ -221,15 +255,27 @@ namespace ChimpanzeeMemoryTest.Game
                 ShowFull();
                 state.Value = GridState.GeneratedAndWaiting;
                 expectedNumber = 1;
+                CurrentRound = 0;
+                InitializeStatistics();
             }
             else if (State.Value == GridState.GeneratedAndWaiting)
                 Start();
-            else if (State.Value == GridState.Completed || State.Value == GridState.Failed)
+            else if (State.Value == GridState.GameFinished)
             {
                 OnSettingsChanged();
                 state.Value = GridState.NotReady;
             }
         }
+
+        private void InitializeStatistics() => gameStatistics = new GameStatistics
+        {
+            Settings = new SettingsStatistics
+            {
+                BoardSize = Size,
+                BoxVisibility = VisibleBoxes.Value,
+                NumbersAmount = AmountOfNumbers.Value
+            }
+        };
 
         public IList<Vector2I> GenerateRandomCoordinates()
         {
@@ -258,7 +304,8 @@ namespace ChimpanzeeMemoryTest.Game
         NotReady = 0,
         GeneratedAndWaiting = 1,
         Playing = 2,
-        Completed = 3,
-        Failed = 4,
+        RoundCompleted = 3,
+        RoundFailed = 4,
+        GameFinished = 5,
     }
 }

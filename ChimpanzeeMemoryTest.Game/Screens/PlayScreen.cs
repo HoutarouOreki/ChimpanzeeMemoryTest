@@ -1,11 +1,11 @@
-﻿using System;
-using ChimpanzeeMemoryTest.Game.UI;
+﻿using ChimpanzeeMemoryTest.Game.UI;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
+using System.Linq;
 
 namespace ChimpanzeeMemoryTest.Game.Screens
 {
@@ -29,6 +29,9 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         private readonly CMTButton restartButton;
         private readonly FillFlowContainer bottomContainer;
         private readonly SpriteText roundsAmountText;
+        private readonly SpriteText currentRoundText;
+        private readonly SpriteText roundResultText;
+        private readonly TextFlowContainer resultsText;
 
         private Grid grid { get; } = new Grid();
 
@@ -50,8 +53,23 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
                             Depth = -1
+                        },
+                        resultsText = new TextFlowContainer
+                        {
+                            RelativeSizeAxes = Axes.X,
+                            AutoSizeAxes = Axes.Y,
+                            Alpha = 0,
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre
                         }
                     }
+                },
+                roundResultText = new SpriteText
+                {
+                    Font = new FontUsage("OpenSans-Bold", 86),
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    Depth = -1
                 },
                 bottomContainer = new FillFlowContainer
                 {
@@ -199,7 +217,8 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                             }
                         }
                     }
-                }
+                },
+                currentRoundText = new SpriteText()
             };
             grid.State.BindValueChanged(OnGridStateChange, true);
             grid.SizeBindable.BindValueChanged(vc => sizeText.Text = $"Size: {vc.NewValue}x{vc.NewValue}", true);
@@ -240,6 +259,8 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         {
             restartButton.Hide();
             const int settings_resize_duration = 0;
+            currentRoundText.Text = $"{grid.CurrentRound}/{grid.RoundsAmount.Value} ({grid.State.Value})";
+            resultsText.Hide();
             switch (grid.State.Value)
             {
                 case GridState.NotReady:
@@ -250,6 +271,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                     rightSettings.Show();
                     previewText.FadeTo(0.3f);
                     bottomContainer.ResizeHeightTo(expanded_settings_height, settings_resize_duration, Easing.OutQuint);
+                    grid.Drawable.Show();
                     break;
                 case GridState.GeneratedAndWaiting:
                     button.Text = "Start by clicking the first box";
@@ -263,14 +285,39 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 case GridState.Playing:
                     button.Hide();
                     break;
-                case GridState.Completed:
-                case GridState.Failed:
+                case GridState.RoundCompleted:
+                case GridState.RoundFailed:
+                    roundResultText.Text = grid.State.Value == GridState.RoundCompleted ? "OK" : "X";
+                    roundResultText.Colour = grid.State.Value == GridState.RoundCompleted ? FrameworkColour.Blue : FrameworkColour.Yellow;
+                    roundResultText.FadeIn().Delay(1000).Then().FadeOut().Then().OnComplete(s =>
+                    {
+                        grid.NextRound();
+                    });
+                    break;
+                case GridState.GameFinished:
+                    grid.Drawable.Hide();
                     button.Text = "Change settings";
                     button.Show();
                     button.Action = grid.Proceed;
                     restartButton.Show();
+                    GenerateResultsText();
                     break;
             }
+        }
+
+        private void GenerateResultsText()
+        {
+            resultsText.Text = "";
+
+            resultsText.AddParagraph($"Successful rounds: {grid.GameStatistics.RoundsCompleted}/{grid.GameStatistics.RoundsCompleted + grid.GameStatistics.RoundsFailed}");
+
+            resultsText.AddParagraph("Memorization times: ");
+            resultsText.AddText(string.Join(", ", grid.GameStatistics.MemorizationTimes.Select(t => t.ToString("#.#"))));
+
+            resultsText.AddParagraph("Solve times: ");
+            resultsText.AddText(string.Join(", ", grid.GameStatistics.ActionTimes.Select(t => t.ToString("#.#"))));
+
+            resultsText.Show();
         }
 
         protected override void LoadComplete()

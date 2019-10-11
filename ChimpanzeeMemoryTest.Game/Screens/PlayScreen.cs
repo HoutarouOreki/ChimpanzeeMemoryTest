@@ -312,10 +312,10 @@ namespace ChimpanzeeMemoryTest.Game.Screens
             resultsText.AddParagraph($"Successful rounds: {grid.GameStatistics.RoundsCompleted}/{grid.GameStatistics.RoundsCompleted + grid.GameStatistics.RoundsFailed}");
 
             resultsText.AddParagraph("Memorization times: ");
-            resultsText.AddText(string.Join(", ", grid.GameStatistics.MemorizationTimes.Select(t => t.ToString("#.#"))));
+            resultsText.AddText(string.Join("  ", grid.GameStatistics.MemorizationTimes.Select(t => t.ToString("0.0"))));
 
             resultsText.AddParagraph("Solve times: ");
-            resultsText.AddText(string.Join(", ", grid.GameStatistics.ActionTimes.Select(t => t.ToString("#.#"))));
+            resultsText.AddText(string.Join("  ", grid.GameStatistics.ActionTimes.Select(t => t.ToString("0.0"))));
 
             resultsText.Show();
         }

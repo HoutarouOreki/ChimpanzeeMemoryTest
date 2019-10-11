@@ -51,6 +51,13 @@ namespace ChimpanzeeMemoryTest.Game
             MaxValue = 50,
         };
 
+        public BindableFloat TimeToMemorize { get; } = new BindableFloat(0)
+        {
+            MinValue = 0,
+            MaxValue = 7,
+            Precision = 0.1f,
+        };
+
         public Bindable<BoxVisibility> VisibleBoxes { get; } = new Bindable<BoxVisibility>(BoxVisibility.WithNumbers);
 
         public float CellSize => 1 / totalSize;
@@ -79,6 +86,7 @@ namespace ChimpanzeeMemoryTest.Game
 
         public Drawable Drawable => grid;
 
+        public DateTime memorizationStart;
 
         public Grid()
         {
@@ -87,6 +95,20 @@ namespace ChimpanzeeMemoryTest.Game
             AmountOfNumbers.BindValueChanged(v => OnSettingsChanged());
             VisibleBoxes.BindValueChanged(v => OnSettingsChanged());
             // RoundsAmount.BindValueChanged(v => OnSettingsChanged()); // doesn't change the preview at all
+            State.BindValueChanged(OnStateChanged, true);
+            Drawable.OnUpdate += OnDrawableUpdate;
+        }
+
+        private void OnDrawableUpdate(Drawable obj)
+        {
+            if (TimeToMemorize.Value > 0 && State.Value == GridState.GeneratedAndWaiting && (DateTime.UtcNow - memorizationStart).TotalSeconds >= TimeToMemorize.Value)
+                Start();
+        }
+
+        private void OnStateChanged(ValueChangedEvent<GridState> obj)
+        {
+            if (State.Value == GridState.GeneratedAndWaiting && TimeToMemorize.Value > 0)
+                memorizationStart = DateTime.UtcNow;
         }
 
         private void OnSettingsChanged()

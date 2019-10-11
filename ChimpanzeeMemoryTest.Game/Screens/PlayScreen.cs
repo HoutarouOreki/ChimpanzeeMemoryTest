@@ -2,6 +2,7 @@
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Screens;
@@ -32,6 +33,15 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         private readonly SpriteText currentRoundText;
         private readonly SpriteText roundResultText;
         private readonly TextFlowContainer resultsText;
+        private readonly SpriteText timeToMemorizeText;
+        private readonly BindableFloat displayScale = new BindableFloat(1)
+        {
+            MinValue = 0.1f,
+            MaxValue = 1,
+            Precision = 0.05f
+        };
+        private readonly SpriteText displayScaleText;
+        private Container gridBorder;
 
         private Grid grid { get; } = new Grid();
 
@@ -137,6 +147,29 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                                             Origin = Anchor.Centre,
                                         }
                                     }
+                                },
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Height = 30,
+                                    Children = new Drawable[]
+                                    {
+                                        new BasicSliderBar<float>
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            Height = 30,
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                            Current = grid.TimeToMemorize,
+                                            BackgroundColour = FrameworkColour.BlueDark,
+                                            SelectionColour = FrameworkColour.BlueGreen
+                                        },
+                                        timeToMemorizeText = new SpriteText
+                                        {
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -213,7 +246,30 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                                             Origin = Anchor.Centre,
                                         }
                                     }
-                                }
+                                },
+                                new Container
+                                {
+                                    RelativeSizeAxes = Axes.X,
+                                    Height = 30,
+                                    Children = new Drawable[]
+                                    {
+                                        new BasicSliderBar<float>
+                                        {
+                                            RelativeSizeAxes = Axes.X,
+                                            Height = 30,
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                            Current = displayScale,
+                                            BackgroundColour = FrameworkColour.BlueDark,
+                                            SelectionColour = FrameworkColour.BlueGreen
+                                        },
+                                        displayScaleText = new SpriteText
+                                        {
+                                            Anchor = Anchor.Centre,
+                                            Origin = Anchor.Centre,
+                                        }
+                                    }
+                                },
                             }
                         }
                     }
@@ -225,6 +281,12 @@ namespace ChimpanzeeMemoryTest.Game.Screens
             grid.AmountOfNumbers.BindValueChanged(vc => amountOfNumbersText.Text = $"Numbers: {vc.NewValue}", true);
             visibleBoxesBindable.BindValueChanged(OnVisibleBoxesSettingChange, true);
             grid.RoundsAmount.BindValueChanged(vc => roundsAmountText.Text = $"Rounds: {vc.NewValue}", true);
+            grid.TimeToMemorize.BindValueChanged(vc => timeToMemorizeText.Text = $"Time to memorize: {(vc.NewValue == 0 ? "infinite" : vc.NewValue.ToString() + "s")}", true);
+            displayScale.BindValueChanged(vc =>
+            {
+                grid.Drawable.Scale = new osuTK.Vector2(vc.NewValue);
+                displayScaleText.Text = $"Grid scale: {vc.NewValue:0.00}";
+            }, true);
         }
 
         private void OnVisibleBoxesSettingChange(ValueChangedEvent<int> obj)
@@ -323,6 +385,21 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         protected override void LoadComplete()
         {
             base.LoadComplete();
+            gridContainer.Add(gridBorder = new Container
+            {
+                Masking = true,
+                BorderColour = FrameworkColour.Blue,
+                BorderThickness = 2,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                MaskingSmoothness = 0,
+                Child = new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Alpha = 0,
+                    AlwaysPresent = true
+                }
+            });
             gridContainer.Add(grid.Drawable);
             UpdateLayout();
         }
@@ -331,6 +408,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         {
             base.Update();
             gridContainer.Padding = new MarginPadding { Bottom = bottomContainer.Height };
+            gridBorder.Size = grid.Drawable.DrawSize * grid.Drawable.Scale;
         }
     }
 }

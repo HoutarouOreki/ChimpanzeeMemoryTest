@@ -55,10 +55,10 @@ namespace ChimpanzeeMemoryTest.Game
 
         public void HideBackground() => Background.Hide();
 
-        protected override bool OnClick(ClickEvent e)
+        protected override bool OnMouseDown(MouseDownEvent e)
         {
             Clicked?.Invoke(this);
-            return base.OnClick(e);
+            return base.OnMouseDown(e);
         }
     }
 }

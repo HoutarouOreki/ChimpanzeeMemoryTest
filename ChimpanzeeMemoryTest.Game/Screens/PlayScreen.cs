@@ -281,7 +281,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
             grid.AmountOfNumbers.BindValueChanged(vc => amountOfNumbersText.Text = $"Numbers: {vc.NewValue}", true);
             visibleBoxesBindable.BindValueChanged(OnVisibleBoxesSettingChange, true);
             grid.RoundsAmount.BindValueChanged(vc => roundsAmountText.Text = $"Rounds: {vc.NewValue}", true);
-            grid.TimeToMemorize.BindValueChanged(vc => timeToMemorizeText.Text = $"Time to memorize: {(vc.NewValue == 0 ? "infinite" : vc.NewValue.ToString() + "s")}", true);
+            grid.TimeToMemorize.BindValueChanged(vc => timeToMemorizeText.Text = $"Memorization time limit: {(vc.NewValue == 0 ? "infinite" : vc.NewValue.ToString() + "s")}", true);
             displayScale.BindValueChanged(vc =>
             {
                 grid.Drawable.Scale = new osuTK.Vector2(vc.NewValue);

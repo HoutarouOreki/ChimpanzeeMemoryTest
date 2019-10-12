@@ -40,7 +40,7 @@ namespace ChimpanzeeMemoryTest.Game
                     {
                         Anchor = Anchor.Centre,
                         Origin = Anchor.Centre,
-                        Font = new FontUsage("OpenSans-Bold"),
+                        Font = new FontUsage("OpenSans-Bold", 28),
                         Alpha = 0
                     }
                 }

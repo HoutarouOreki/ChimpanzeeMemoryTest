@@ -1,6 +1,6 @@
 ﻿namespace ChimpanzeeMemoryTest.Game
 {
-    public class SettingsStatistics : ISettingsStatistics
+    public class SettingsStatistics
     {
         public int BoardSize { get; set; }
 

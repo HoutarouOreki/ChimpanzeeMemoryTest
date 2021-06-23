@@ -11,14 +11,14 @@ namespace ChimpanzeeMemoryTest.Game
     {
         private readonly SpriteText numberText;
 
-        public event Action<Cell> Clicked;
+        public event Action<Cell>? Clicked;
 
         public readonly Box Background;
 
         public int? Number
         {
-            get => string.IsNullOrEmpty(numberText.Text) ? (int?)null : int.Parse(numberText.Text);
-            set => numberText.Text = value.ToString();
+            get => string.IsNullOrEmpty(numberText.Text.ToString()) ? null : int.Parse(numberText.Text.ToString());
+            set => numberText.Text = (value.HasValue ? value.Value.ToString() : null)!;
         }
 
         public Cell()

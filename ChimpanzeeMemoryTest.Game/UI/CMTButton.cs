@@ -5,15 +5,14 @@ using osuTK.Graphics;
 
 namespace ChimpanzeeMemoryTest.Game.UI
 {
-    internal class CMTButton : Button
+    internal class CMTButton : BasicButton
     {
         private Color4 backgroundColour = FrameworkColour.GreenDark;
 
-        new public Color4 BackgroundColour
+        public new Color4 BackgroundColour
         {
             get => backgroundColour;
-            set
-            {
+            set {
                 backgroundColour = value;
                 UpdateLayout();
             }

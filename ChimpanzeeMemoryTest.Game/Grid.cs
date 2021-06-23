@@ -2,7 +2,7 @@
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
-using osu.Framework.MathUtils;
+using osu.Framework.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace ChimpanzeeMemoryTest.Game
 {
     public class Grid
     {
-        private readonly GridContainer grid = new GridContainer
+        private readonly GridContainer grid = new()
         {
             RelativeSizeAxes = Axes.Both,
             FillMode = FillMode.Fit,
@@ -19,9 +19,9 @@ namespace ChimpanzeeMemoryTest.Game
             Origin = Anchor.Centre
         };
 
-        private Cell[][] gridCells;
+        private Cell[][]? gridCells;
 
-        private readonly List<List<Cell>> cells = new List<List<Cell>>();
+        private readonly List<List<Cell>> cells = new();
         private IEnumerable<Cell> allCells => cells.SelectMany(l => l);
 
         private int amountOfSpacings => Size + 1;
@@ -38,12 +38,12 @@ namespace ChimpanzeeMemoryTest.Game
 
         private DateTime timerStart;
 
-        private GameStatistics gameStatistics = new GameStatistics();
+        private GameStatistics gameStatistics = new();
 
-        private readonly Bindable<GridState> state = new Bindable<GridState>(GridState.NotReady);
+        private readonly Bindable<GridState> state = new(GridState.NotReady);
         public IBindable<GridState> State => state;
 
-        public IGameStatistics GameStatistics => gameStatistics;
+        public GameStatistics GameStatistics { get; private set; } = new();
 
         public BindableInt AmountOfNumbers { get; } = new BindableInt(5)
         {
@@ -86,7 +86,7 @@ namespace ChimpanzeeMemoryTest.Game
 
         public Drawable Drawable => grid;
 
-        public DateTime memorizationStart;
+        public DateTime MemorizationStart;
 
         public Grid()
         {
@@ -101,14 +101,18 @@ namespace ChimpanzeeMemoryTest.Game
 
         private void OnDrawableUpdate(Drawable obj)
         {
-            if (TimeToMemorize.Value > 0 && State.Value == GridState.GeneratedAndWaiting && (DateTime.UtcNow - memorizationStart).TotalSeconds >= TimeToMemorize.Value)
+            if (TimeToMemorize.Value > 0 && State.Value == GridState.GeneratedAndWaiting && (DateTime.UtcNow - MemorizationStart).TotalSeconds >= TimeToMemorize.Value)
+            {
                 Start();
+            }
         }
 
         private void OnStateChanged(ValueChangedEvent<GridState> obj)
         {
             if (State.Value == GridState.GeneratedAndWaiting && TimeToMemorize.Value > 0)
-                memorizationStart = DateTime.UtcNow;
+            {
+                MemorizationStart = DateTime.UtcNow;
+            }
         }
 
         private void OnSettingsChanged()
@@ -124,7 +128,12 @@ namespace ChimpanzeeMemoryTest.Game
             AmountOfNumbers.Value = Math.Min(AmountOfNumbers.Value, AmountOfNumbers.MaxValue);
         }
 
-        private Cell GetCell(Vector2I coordinates) => gridCells[(coordinates.Y * 2) - 1][(coordinates.X * 2) - 1];
+        private Cell GetCell(Vector2I coordinates)
+        {
+            if (gridCells is null)
+                throw new NullReferenceException($"{nameof(gridCells)} was null.");
+            return gridCells[(coordinates.Y * 2) - 1][(coordinates.X * 2) - 1];
+        }
 
         public void GenerateLayout()
         {
@@ -134,7 +143,9 @@ namespace ChimpanzeeMemoryTest.Game
             for (var i = 0; i < Size + amountOfSpacings; i++)
             {
                 if (i % 2 == 0) // if row or cell of spacing
+                {
                     dimensions[i] = new Dimension(GridSizeMode.Relative, spacingSize);
+                }
                 else
                 {
                     dimensions[i] = new Dimension(GridSizeMode.Relative, CellSize);
@@ -162,13 +173,25 @@ namespace ChimpanzeeMemoryTest.Game
         private void OnCellClicked(Cell cell)
         {
             if (VisibleBoxes.Value == BoxVisibility.WithNumbers && !cell.Number.HasValue)
+            {
                 return;
+            }
+
             if (!(State.Value == GridState.Playing || (State.Value == GridState.GeneratedAndWaiting && cell.Number == 1)))
+            {
                 return;
+            }
+
             if (cell.Number < expectedNumber)
+            {
                 return;
+            }
+
             if (state.Value == GridState.GeneratedAndWaiting)
+            {
                 Start();
+            }
+
             if (cell.Number == expectedNumber)
             {
                 cell.ShowNumber();
@@ -176,21 +199,26 @@ namespace ChimpanzeeMemoryTest.Game
                 expectedNumber++;
             }
             else
+            {
                 OnFail();
+            }
+
             if (isCurrentRoundComplete)
+            {
                 OnWin();
+            }
         }
 
         private void OnWin()
         {
-            gameStatistics.actionTimes.Add((float)(DateTime.UtcNow - timerStart).TotalSeconds);
+            gameStatistics.ActionTimes.Add((float)(DateTime.UtcNow - timerStart).TotalSeconds);
             gameStatistics.RoundsCompleted++;
             state.Value = GridState.RoundCompleted;
         }
 
         private void OnFail()
         {
-            gameStatistics.memorizationTimes.Remove(gameStatistics.memorizationTimes.Last());
+            gameStatistics.MemorizationTimes.Remove(gameStatistics.MemorizationTimes.Last());
             gameStatistics.RoundsFailed++;
             state.Value = GridState.RoundFailed;
             ShowFull();
@@ -202,15 +230,22 @@ namespace ChimpanzeeMemoryTest.Game
             var currentNumber = 0;
 
             if (placesArray.Count > Size * Size)
+            {
                 throw new Exception($"Too many numbers ({placesArray.Count}) for the {Size}x{Size} grid");
+            }
 
             foreach (var place in placesArray)
             {
                 currentNumber++;
                 if (usedCoordinates.Contains(place))
+                {
                     throw new ArgumentException("This coordinate is already used");
+                }
+
                 if (place.X <= 0 || place.Y <= 0)
-                    throw new ArgumentOutOfRangeException("The coordinates must be above 0");
+                {
+                    throw new ArgumentOutOfRangeException(nameof(place), "The coordinates must be above 0");
+                }
 
                 GetCell(place).Number = currentNumber;
             }
@@ -241,12 +276,15 @@ namespace ChimpanzeeMemoryTest.Game
             {
                 if ((VisibleBoxes.Value == BoxVisibility.WithNumbers && !cell.Number.HasValue)
                     || VisibleBoxes.Value == BoxVisibility.None)
+                {
                     cell.HideBackground();
+                }
+
                 cell.HideNumber();
             }
             CurrentRound++;
             state.Value = GridState.Playing;
-            gameStatistics.memorizationTimes.Add((float)(DateTime.UtcNow - timerStart).TotalSeconds);
+            gameStatistics.MemorizationTimes.Add((float)(DateTime.UtcNow - timerStart).TotalSeconds);
             timerStart = DateTime.UtcNow;
         }
 
@@ -271,7 +309,10 @@ namespace ChimpanzeeMemoryTest.Game
             if (State.Value == GridState.NotReady)
             {
                 if (AmountOfNumbers.Value > Size * Size)
+                {
                     throw new Exception($"Amount of numbers ({AmountOfNumbers}) is impossible to fit into the grid of size {Size}x{Size}");
+                }
+
                 GenerateLayout();
                 SetNumbers(GenerateRandomCoordinates());
                 ShowFull();
@@ -281,7 +322,9 @@ namespace ChimpanzeeMemoryTest.Game
                 InitializeStatistics();
             }
             else if (State.Value == GridState.GeneratedAndWaiting)
+            {
                 Start();
+            }
             else if (State.Value == GridState.GameFinished)
             {
                 OnSettingsChanged();
@@ -306,7 +349,9 @@ namespace ChimpanzeeMemoryTest.Game
             {
                 Vector2I coordinate;
                 do
+                {
                     coordinate = new Vector2I(RNG.Next(Size), RNG.Next(Size)) + Vector2I.One;
+                }
                 while (coordinates.Contains(coordinate));
                 coordinates.Add(coordinate);
             }

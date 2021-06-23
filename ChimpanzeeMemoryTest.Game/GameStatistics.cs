@@ -2,20 +2,16 @@
 
 namespace ChimpanzeeMemoryTest.Game
 {
-    public class GameStatistics : IGameStatistics
+    public class GameStatistics
     {
         public int RoundsCompleted { get; set; }
 
         public int RoundsFailed { get; set; }
 
-        public IList<float> MemorizationTimes => memorizationTimes;
+        public readonly List<float> MemorizationTimes = new();
 
-        public readonly List<float> memorizationTimes = new List<float>();
+        public readonly List<float> ActionTimes = new();
 
-        public IList<float> ActionTimes => actionTimes;
-
-        public readonly List<float> actionTimes = new List<float>();
-
-        public ISettingsStatistics Settings { get; set; }
+        public SettingsStatistics Settings { get; set; } = new();
     }
 }

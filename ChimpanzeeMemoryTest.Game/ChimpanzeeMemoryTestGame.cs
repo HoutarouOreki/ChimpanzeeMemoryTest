@@ -1,8 +1,5 @@
 ﻿using ChimpanzeeMemoryTest.Game.Screens;
-using osu.Framework.Graphics.Primitives;
-using osu.Framework.MathUtils;
 using osu.Framework.Screens;
-using System.Collections.Generic;
 
 namespace ChimpanzeeMemoryTest.Game
 {

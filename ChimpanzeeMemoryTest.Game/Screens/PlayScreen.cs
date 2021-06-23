@@ -20,7 +20,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         private readonly FillFlowContainer leftSettings;
         private readonly FillFlowContainer rightSettings;
         private readonly SpriteText amountOfNumbersText;
-        private readonly BindableInt visibleBoxesBindable = new BindableInt(1)
+        private readonly BindableInt visibleBoxesBindable = new(1)
         {
             MinValue = 0,
             MaxValue = 2,
@@ -34,14 +34,14 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         private readonly SpriteText roundResultText;
         private readonly TextFlowContainer resultsText;
         private readonly SpriteText timeToMemorizeText;
-        private readonly BindableFloat displayScale = new BindableFloat(1)
+        private readonly BindableFloat displayScale = new(1)
         {
             MinValue = 0.1f,
             MaxValue = 1,
             Precision = 0.05f
         };
         private readonly SpriteText displayScaleText;
-        private Container gridBorder;
+        private readonly Container gridBorder;
 
         private Grid grid { get; } = new Grid();
 
@@ -287,6 +287,24 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 grid.Drawable.Scale = new osuTK.Vector2(vc.NewValue);
                 displayScaleText.Text = $"Grid scale: {vc.NewValue:0.00}";
             }, true);
+
+
+            gridContainer.Add(gridBorder = new Container
+            {
+                Masking = true,
+                BorderColour = FrameworkColour.Blue,
+                BorderThickness = 2,
+                Anchor = Anchor.Centre,
+                Origin = Anchor.Centre,
+                MaskingSmoothness = 0,
+                Child = new Box
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Alpha = 0,
+                    AlwaysPresent = true
+                }
+            });
+            gridContainer.Add(grid.Drawable);
         }
 
         private void OnVisibleBoxesSettingChange(ValueChangedEvent<int> obj)
@@ -351,10 +369,7 @@ namespace ChimpanzeeMemoryTest.Game.Screens
                 case GridState.RoundFailed:
                     roundResultText.Text = grid.State.Value == GridState.RoundCompleted ? "OK" : "X";
                     roundResultText.Colour = grid.State.Value == GridState.RoundCompleted ? FrameworkColour.Blue : FrameworkColour.Yellow;
-                    roundResultText.FadeIn().Delay(1000).Then().FadeOut().Then().OnComplete(s =>
-                    {
-                        grid.NextRound();
-                    });
+                    roundResultText.FadeIn().Delay(1000).Then().FadeOut().Then().OnComplete(s => grid.NextRound());
                     break;
                 case GridState.GameFinished:
                     grid.Drawable.Hide();
@@ -385,22 +400,6 @@ namespace ChimpanzeeMemoryTest.Game.Screens
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            gridContainer.Add(gridBorder = new Container
-            {
-                Masking = true,
-                BorderColour = FrameworkColour.Blue,
-                BorderThickness = 2,
-                Anchor = Anchor.Centre,
-                Origin = Anchor.Centre,
-                MaskingSmoothness = 0,
-                Child = new Box
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    Alpha = 0,
-                    AlwaysPresent = true
-                }
-            });
-            gridContainer.Add(grid.Drawable);
             UpdateLayout();
         }
 
